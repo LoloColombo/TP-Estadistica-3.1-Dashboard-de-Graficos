@@ -125,7 +125,7 @@
             } catch (error) {
                 alert(`ERROR al obtener datos de ${URL}: ${error.message}`); 
                 console.error(`Error al obtener datos de ${URL}:`, error);
-                return null; // Retornar null en caso de error
+                return null; 
             }
         }
 
@@ -200,8 +200,8 @@
                         datasets: [{
                             label: '% de Presentes',
                             data: [porcentajePresentes],
-                            backgroundColor: chartColors.green, // Color único para la barra de presentes
-                            borderColor: chartColors.green.replace('0.8', '1'), // Borde más opaco
+                            backgroundColor: chartColors.green, 
+                            borderColor: chartColors.green.replace('0.8', '1'), 
                             borderWidth: 1
                         }]
                     },
@@ -217,7 +217,7 @@
                                 }
                             },
                             legend: {
-                                display: false // No es necesaria la leyenda para una sola barra
+                                display: false 
                             }
                         },
                         scales: {
