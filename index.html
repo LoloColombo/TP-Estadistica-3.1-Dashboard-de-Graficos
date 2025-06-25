@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP Estadistica 3.1 Dashboard de Gráficos</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; 
+            padding: 1rem;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2rem; 
+            font-weight: bold;
+            text-align: center;
+            color: #1f2937; 
+            margin-bottom: 2rem; 
+        }
+
+        /* Contenedor principal para los gráficos */
+        .charts-grid-container {
+            display: flex;
+            flex-wrap: wrap; /* Permite que los elementos se envuelvan a la siguiente línea */
+            gap: 1.5rem; /* Espacio entre los gráficos, similar a gap-6 */
+            justify-content: center; /* Centra los gráficos horizontalmente */
+            width: 100%;
+            max-width: 1280px; /* Similar a max-w-7xl */
+        }
+
+        /* Estilos para cada contenedor de gráfico */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%; 
+            padding: 1rem;
+            background-color: #ffffff;
+            border-radius: 0.5rem; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-sizing: border-box; 
+        }
+
+        
+        @media (min-width: 768px) {
+            .chart-container {
+                width: calc(50% - 0.75rem); 
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .chart-container {
+                width: calc(33.333% - 1rem); 
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Dashboard de Estadísticas</h1>
+    <div class="charts-grid-container">
+        <!-- Gráfico 1: Composición del Alumnado por Nivel -->
+        <div class="chart-container">
+            <canvas id="myChart1"></canvas>
+        </div>
+
+        <!-- Gráfico 2: Nivel de Asistencia General -->
+        <div class="chart-container">
+            <canvas id="myChart2"></canvas>
+        </div>
+
+        <!-- Gráfico 3: Comparación de Asistencia por Curso -->
+        <div class="chart-container">
+            <canvas id="myChart3"></canvas>
+        </div>
+
+        <!-- Gráfico 4: Evolución anual de nivel de asistencia por mes -->
+        <div class="chart-container">
+            <canvas id="myChart4"></canvas>
+        </div>
+
+        <!-- Gráfico 5: Nivel general de calificaciones en la institución -->
+        <div class="chart-container">
+            <canvas id="myChart5"></canvas>
+        </div>
+
+        <!-- Gráfico 6: Comparativa de niveles de calificaciones por curso -->
+        <div class="chart-container">
+            <canvas id="myChart6"></canvas>
+        </div>
+
+        <!-- Gráfico 7: Estado de situación de envío de comunicados -->
+        <div class="chart-container">
+            <canvas id="myChart7"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Definir colores
+        const chartColors = {
+            blue: 'rgba(54, 162, 235, 0.8)',
+            yellow: 'rgba(255, 206, 86, 0.8)',
+            red: 'rgba(255, 99, 132, 0.8)',
+            green: 'rgba(75, 192, 192, 0.8)',
+            purple: 'rgba(153, 102, 255, 0.8)',
+            orange: 'rgba(255, 159, 64, 0.8)'
+        };
+
+        // Función para realizar peticiones GET a las APIs
+        async function GetElements(URL) {
+            try {
+                const response = await fetch(URL);
+                if (!response.ok) {
+                    throw new Error(`ERROR HTTP Status: ${response.status}`);
+                }
+                const apiResponse = await response.json();
+                console.log('success in the get data from:', URL);
+                return apiResponse.data;
+            } catch (error) {
+                alert(`ERROR al obtener datos de ${URL}: ${error.message}`); 
+                console.error(`Error al obtener datos de ${URL}:`, error);
+                return null; // Retornar null en caso de error
+            }
+        }
+
+        // Gráfico 1: Composición del alumnado por nivel (Pie Chart)
+        async function graphic1() {
+            const url = 'https://apidemo.geoeducacion.com.ar/api/testing/estudiantes/1';
+            const students = await GetElements(url);
+
+            if (students && students.length > 0) {
+                const frecuenciaNiveles = {};
+                students.forEach(item => {
+                    frecuenciaNiveles[item.nivel] = (frecuenciaNiveles[item.nivel] || 0) + 1;
+                });
+
+                const labels = Object.keys(frecuenciaNiveles);
+                const data = Object.values(frecuenciaNiveles);
+
+                const backgroundColors = [chartColors.blue, chartColors.yellow, chartColors.red, chartColors.green, chartColors.purple, chartColors.orange]; 
+
+                const ctx1 = document.getElementById('myChart1');
+                new Chart(ctx1, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Cantidad de Estudiantes',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false, 
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Composición del Alumnado por Nivel',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn("No hay datos para el Gráfico 1: Composición del Alumnado por Nivel.");
+            }
+        }
+
+        // Gráfico 2: Nivel de asistencia general (Bar Chart - single bar)
+        async function graphic2() {
+            const url = 'https://apidemo.geoeducacion.com.ar/api/testing/asistencia/1';
+            const cursos = await GetElements(url);
+
+            if (cursos && cursos.length > 0) {
+                let totalPresentes = 0;
+                let totalAusentes = 0;
+                cursos.forEach(item => {
+                    totalPresentes += item.presentes || 0;
+                    totalAusentes += item.ausentes || 0;
+                });
+
+                const totalAsistencias = totalPresentes + totalAusentes;
+                const porcentajePresentes = totalAsistencias > 0 ? (totalPresentes * 100 / totalAsistencias) : 0;
+
+                const ctx2 = document.getElementById('myChart2');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Presentes'],
+                        datasets: [{
+                            label: '% de Presentes',
+                            data: [porcentajePresentes],
+                            backgroundColor: chartColors.green, // Color único para la barra de presentes
+                            borderColor: chartColors.green.replace('0.8', '1'), // Borde más opaco
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Nivel de Asistencia General',
+                                font: {
+                                    size: 16
+                                }
+                            },
+                            legend: {
+                                display: false // No es necesaria la leyenda para una sola barra
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100, 
+                                title: {
+                                    display: true,
+                                    text: 'Porcentaje (%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn("No hay datos para el Gráfico 2: Nivel de Asistencia General.");
+            }
+        }
+
+        // Gráfico 3: Comparación de niveles de asistencia por curso (Grouped Bar Chart)
+        async function graphic3() {
+            const url = 'https://apidemo.geoeducacion.com.ar/api/testing/asistencia/1';
+            const asistenciasPorCurso = await GetElements(url);
+
+            if (asistenciasPorCurso && asistenciasPorCurso.length > 0) {
+                const courseLabels = [];
+                const presentPercentages = [];
+                const absentPercentages = [];
+
+                asistenciasPorCurso.forEach(item => {
+                    const cursoNombre = item.curso;
+                    const presentes = item.presentes || 0;
+                    const ausentes = item.ausentes || 0;
+                    const total = presentes + ausentes;
+
+                    if (total > 0) {
+                        const percPresentes = (presentes / total) * 100;
+                        const percAusentes = (ausentes / total) * 100;
+
+                        courseLabels.push(cursoNombre);
+                        presentPercentages.push(parseFloat(percPresentes.toFixed(2))); 
+                        absentPercentages.push(parseFloat(percAusentes.toFixed(2)));
+                    } else {
+                        courseLabels.push(cursoNombre);
+                        presentPercentages.push(0);
+                        absentPercentages.push(0);
+                    }
+                });
+
+                if (courseLabels.length === 0) {
+                    console.warn("No hay datos de asistencia por curso disponibles para el Gráfico 3.");
+                    return;
+                }
+
+                const ctx3 = document.getElementById('myChart3');
+                new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: courseLabels,
+                        datasets: [
+                            {
+                                label: 'Presentes (%)',
+                                data: presentPercentages,
+                                backgroundColor: chartColors.green,
+                                borderColor: chartColors.green.replace('0.8', '1'),
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Ausentes (%)',
+                                data: absentPercentages,
+                                backgroundColor: chartColors.red,
+                                borderColor: chartColors.red.replace('0.8', '1'),
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Comparación de Asistencia por Curso',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Porcentaje (%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn("No hay datos para el Gráfico 3: Comparación de Asistencia por Curso.");
+            }
+        }
+
+        // Gráfico 4: Evolución anual de nivel de asistencia por mes (Line Chart)
+        async function graphic4() {
+            const url = 'https://apidemo.geoeducacion.com.ar/api/testing/historial_asistencia/1';
+            const asistenciaMensual = await GetElements(url);
+
+            if (asistenciaMensual && asistenciaMensual.length > 0) {
+                const mesLabels = [];
+                const asistenciaData = [];
+
+                asistenciaMensual.forEach(item => {
+                    mesLabels.push(item.mes);
+                    asistenciaData.push(item.asistencia * 100); 
+                });
+
+                const ctx4 = document.getElementById('myChart4');
+                new Chart(ctx4, {
+                    type: 'line',
+                    data: {
+                        labels: mesLabels,
+                        datasets: [{
+                            label: '% Asistencia Mensual',
+                            data: asistenciaData,
+                            fill: false,
+                            borderColor: chartColors.blue,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Evolución Anual de Asistencia por Mes',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Porcentaje (%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn("No hay datos para el Gráfico 4: Evolución Anual de Asistencia por Mes.");
+            }
+        }
+
+        // Gráfico 5: Nivel general de calificaciones en la institución (Pie Chart)
+        async function graphic5() {
+            const url = 'https://apidemo.geoeducacion.com.ar/api/testing/calificaciones/1';
+            const calificaciones = await GetElements(url);
+
+            if (calificaciones && calificaciones.length > 0) {
+                let sumAprobadosProportion = 0;
+                let sumDesaprobadosProportion = 0;
+
+                calificaciones.forEach(item => {
+                    sumAprobadosProportion += item.aprobados || 0; 
+                    sumDesaprobadosProportion += item.desaprobados || 0;
+                });
+                const avgAprobados = (sumAprobadosProportion / calificaciones.length) * 100;
+                const avgDesaprobados = (sumDesaprobadosProportion / calificaciones.length) * 100;
+
+
+                const labels = ['Aprobados', 'Desaprobados'];
+                const data = [avgAprobados, avgDesaprobados];
+                const backgroundColors = [chartColors.green, chartColors.red];
+
+                const ctx5 = document.getElementById('myChart5');
+                new Chart(ctx5, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Proporción (%)',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Nivel General de Calificaciones en la Institución',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn("No hay datos para el Gráfico 5: Nivel General de Calificaciones en la Institución.");
+            }
+        }
+
+        // Gráfico 6: Comparativa de niveles de calificaciones por curso (Grouped Bar Chart)
+        async function graphic6() {
+            const url = 'https://apidemo.geoeducacion.com.ar/api/testing/calificaciones/1';
+            const calificacionesPorCurso = await GetElements(url);
+
+            if (calificacionesPorCurso && calificacionesPorCurso.length > 0) {
+                const courseLabels = [];
+                const aprobadosPercentages = [];
+                const desaprobadosPercentages = [];
+
+                calificacionesPorCurso.forEach(item => {
+                    const cursoNombre = item.curso;
+                    const aprobados = item.aprobados * 100 || 0;
+                    const desaprobados = item.desaprobados * 100 || 0;
+
+                    courseLabels.push(cursoNombre);
+                    aprobadosPercentages.push(parseFloat(aprobados.toFixed(2)));
+                    desaprobadosPercentages.push(parseFloat(desaprobados.toFixed(2)));
+                });
+
+                if (courseLabels.length === 0) {
+                    console.warn("No hay datos de calificaciones por curso disponibles para el Gráfico 6.");
+                    return;
+                }
+
+                const ctx6 = document.getElementById('myChart6');
+                new Chart(ctx6, {
+                    type: 'bar',
+                    data: {
+                        labels: courseLabels,
+                        datasets: [
+                            {
+                                label: 'Aprobados (%)',
+                                data: aprobadosPercentages,
+                                backgroundColor: chartColors.green,
+                                borderColor: chartColors.green.replace('0.8', '1'),
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Desaprobados (%)',
+                                data: desaprobadosPercentages,
+                                backgroundColor: chartColors.red,
+                                borderColor: chartColors.red.replace('0.8', '1'),
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Comparativa de Calificaciones por Curso',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Porcentaje (%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn("No hay datos para el Gráfico 6: Comparativa de Calificaciones por Curso.");
+            }
+        }
+
+        // Gráfico 7: Estado de situación de envío de comunicados (Pie Chart)
+        async function graphic7() {
+            const url = 'https://apidemo.geoeducacion.com.ar/api/testing/comunicados/1';
+            const comunicadosData = await GetElements(url);
+
+            if (comunicadosData && comunicadosData.length > 0) {
+                const item = comunicadosData[0];
+
+                const porcentajeEntregados = (item.entregados / item.total) * 100;
+                const porcentajePendientes = (item.pendientes / item.total) * 100;
+                const porcentajeErrores = (item.error / item.total) * 100;
+
+                const labels = ['Entregados', 'Pendientes', 'Errores'];
+                const data = [porcentajeEntregados, porcentajePendientes, porcentajeErrores];
+                const backgroundColors = [chartColors.blue, chartColors.yellow, chartColors.red];
+
+                const ctx7 = document.getElementById('myChart7');
+                new Chart(ctx7, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '% de Comunicados',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Estado de Situación de Envío de Comunicados',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn("No hay datos para el Gráfico 7: Estado de Situación de Envío de Comunicados.");
+            }
+        }
+
+        // Ejecutar todos los gráficos 
+            graphic1();
+            graphic2();
+            graphic3();
+            graphic4();
+            graphic5();
+            graphic6();
+            graphic7();
+
+    </script>
+</body>
+
+</html>
